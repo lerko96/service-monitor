@@ -156,15 +156,66 @@ Health checks are configured in both the application and Docker containers.
    Add this to your `.env` file as `JWT_SECRET`
 
 2. SSL/HTTPS Configuration:
-   - Place your SSL certificates in the `ssl/` directory:
-     - `ssl/cert.pem`: Your SSL certificate
-     - `ssl/key.pem`: Your private key
-   - For development, you can generate self-signed certificates:
-     ```bash
-     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-       -keyout ssl/key.pem -out ssl/cert.pem
-     ```
-   - For production, use certificates from a trusted CA
+   
+   The application requires SSL certificates for HTTPS. These are not included in the repository for security reasons.
+   
+   #### Development Setup
+   1. Create the SSL directory:
+      ```bash
+      mkdir -p ssl
+      ```
+   
+   2. Generate self-signed certificates:
+      ```bash
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout ssl/key.pem -out ssl/cert.pem \
+        -subj "/CN=localhost"
+      ```
+      Note: Self-signed certificates will show security warnings in browsers (this is normal for development)
+   
+   #### Production Setup
+   For production, you should obtain certificates from a trusted Certificate Authority. We recommend Let's Encrypt:
+   
+   1. Install Certbot:
+      ```bash
+      sudo apt-get update
+      sudo apt-get install certbot
+      ```
+   
+   2. Obtain certificates (replace example.com with your domain):
+      ```bash
+      sudo certbot certonly --standalone -d example.com
+      ```
+   
+   3. Copy certificates to the ssl directory:
+      ```bash
+      sudo mkdir -p ssl
+      sudo cp /etc/letsencrypt/live/example.com/fullchain.pem ssl/cert.pem
+      sudo cp /etc/letsencrypt/live/example.com/privkey.pem ssl/key.pem
+      ```
+   
+   4. Set proper permissions:
+      ```bash
+      sudo chown -R $USER:$USER ssl/
+      chmod 600 ssl/*.pem
+      ```
+   
+   5. Set up automatic renewal:
+      ```bash
+      sudo certbot renew --dry-run
+      ```
+      Add to crontab:
+      ```bash
+      sudo crontab -e
+      # Add this line:
+      0 0 1 * * certbot renew --quiet && docker compose restart nginx
+      ```
+
+   Important: 
+   - Never commit SSL certificates to version control
+   - Keep backups of your certificates in a secure location
+   - Monitor certificate expiration dates
+   - For high-availability production environments, consider using a managed SSL service
 
 3. Default Admin Account:
    - The default credentials (admin/admin123) are created on first run
