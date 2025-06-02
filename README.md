@@ -4,32 +4,55 @@ A web application that monitors the status of web services and provides real-tim
 
 ## Features
 
-- User authentication and authorization
-- Add and manage services to monitor
-- Automatic service status checks every 5 minutes
-- Real-time dashboard with service status
-- Toast notifications for user actions
-- Professional UI with error handling
+- User authentication with JWT tokens
+- Add, manage, and monitor web services
+- Automatic service status checks (30s in development, 5min in production)
+- Real-time dashboard with service status updates
+- Toast notifications for user actions and service status changes
+- Professional UI with React and modern styling
+- Comprehensive error handling and boundary protection
+- HTTPS support with nginx reverse proxy
+- Docker-ready for production deployment
+- Health check endpoints for monitoring
+- SQLite database with persistent storage
+- Graceful shutdown handling
 
 ## Prerequisites
 
 - Node.js >= 18.0.0
 - npm or yarn
 - SQLite3
-- Docker (for production deployment)
+- Docker and Docker Compose (for production)
+
+## Tech Stack
+
+### Backend
+- Express.js
+- SQLite3 with sqlite3 driver
+- JSON Web Tokens (JWT) for authentication
+- node-cron for scheduled tasks
+- Morgan for request logging
+
+### Frontend
+- React 18 with Vite
+- React Router for navigation
+- Axios for API requests
+- date-fns for date formatting
+- Modern CSS with responsive design
+- Toast notifications system
+- Error Boundary implementation
 
 ## Local Development
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/service-monitor.git
+   git clone https://github.com/lerko96/service-monitor.git
    cd service-monitor
    ```
 
 2. Install dependencies:
    ```bash
    npm install
-   cd frontend && npm install && cd ..
    ```
 
 3. Create a `.env` file based on `.env.example`:
@@ -39,12 +62,10 @@ A web application that monitors the status of web services and provides real-tim
 
 4. Start the development server:
    ```bash
-   # Terminal 1: Backend
    npm run dev
-
-   # Terminal 2: Frontend
-   cd frontend && npm run dev
    ```
+
+The application will be available at `http://localhost:3001`
 
 ## Production Deployment (Docker)
 
@@ -59,8 +80,9 @@ A web application that monitors the status of web services and provides real-tim
    - Ensure `JWT_SECRET` is set to a secure value
 
 3. Access the Application:
-   - The application will be available at `http://localhost:3001`
-   - For HTTPS, configure your reverse proxy (nginx configuration included)
+   - The application will be available at `https://your-domain`
+   - HTTPS is configured through the included nginx reverse proxy
+   - HTTP traffic (port 80) is automatically redirected to HTTPS (port 443)
 
 4. Monitor:
    - Check container logs: `docker-compose logs -f`
@@ -69,10 +91,12 @@ A web application that monitors the status of web services and provides real-tim
 
 ## Database
 
-The application uses SQLite3 for data storage. In production:
-- The database file is stored in a Docker volume
-- Located at the path specified in `DB_PATH`
+The application uses SQLite3 for data storage:
+- Development: File stored at `./database/service-monitor.db`
+- Production: Stored in a Docker volume at `/app/data/service-monitor.db`
+- Automatic schema initialization on first run
 - Data persists between container restarts
+- Includes tables for users, services, and service checks
 
 ## Environment Variables
 
@@ -80,10 +104,11 @@ Required variables:
 - `PORT`: Server port (default: 3001)
 - `NODE_ENV`: Environment (development/production)
 - `JWT_SECRET`: Secret for JWT tokens
-- `JWT_EXPIRATION`: Token expiration time
+- `JWT_EXPIRATION`: Token expiration time (default: 24h)
 - `DB_PATH`: SQLite database file path
-- `CHECK_INTERVAL`: Service check interval in minutes
-- `REQUEST_TIMEOUT`: Service check timeout in milliseconds
+- `CHECK_INTERVAL`: Service check interval in minutes (defaults: 0.5 dev, 5 prod)
+- `REQUEST_TIMEOUT`: Service check timeout in milliseconds (default: 5000)
+- `LOG_LEVEL`: Logging level (info/error/debug)
 
 ## Health Checks
 
@@ -93,29 +118,26 @@ The application provides a health check endpoint at `/api/health` that returns:
 - Application version
 - Current timestamp
 
+Health checks are configured in both the application and Docker containers.
+
 ## Error Handling
 
-- Frontend: React Error Boundary catches rendering errors
-- Backend: Global error handler for API errors
-- Toast notifications for user feedback
-- Graceful shutdown handling
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-MIT License - see LICENSE file for details
+- Frontend:
+  - React Error Boundary for component error catching
+  - Toast notifications for user feedback
+  - Form validation with error messages
+  - Network error handling
+  
+- Backend:
+  - Global error handler for API errors
+  - Request validation
+  - Database error handling
+  - Graceful shutdown handling
 
 ## API Endpoints
 
 ### Health Check
-- `GET /api/health` - Check if the server is running
+- `GET /api/health` - Check system status
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user
@@ -130,15 +152,32 @@ MIT License - see LICENSE file for details
 
 ```
 service-monitor/
-├── database/     # Database related files
-├── jobs/         # Scheduled jobs and tasks
-├── middleware/   # Express middleware
-├── routes/       # API routes
-├── frontend/     # React frontend application
-├── server.js     # Main application file
-├── docker-compose.yml  # Docker Compose configuration
-├── Dockerfile    # Docker build configuration
-├── nginx.conf    # Nginx reverse proxy configuration
-├── .env          # Environment variables (create from .env.example)
-└── package.json  # Project dependencies and scripts
+├── database/          # Database related files
+├── jobs/             # Scheduled jobs and tasks
+│   ├── scheduler.js  # Service check scheduler
+│   └── serviceChecker.js # Service check logic
+├── middleware/       # Express middleware
+│   └── auth.js      # JWT authentication
+├── routes/          # API routes
+│   ├── auth.js      # Authentication routes
+│   └── services.js  # Service management routes
+├── frontend/        # React frontend application
+├── server.js        # Main application file
+├── docker-compose.yml # Docker Compose configuration
+├── Dockerfile       # Docker build configuration
+├── nginx.conf       # Nginx reverse proxy configuration
+├── .env             # Environment variables
+└── package.json     # Project dependencies and scripts
 ``` 
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT License - see LICENSE file for details 
