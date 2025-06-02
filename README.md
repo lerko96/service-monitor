@@ -71,7 +71,8 @@ The application will be available at `http://localhost:3001`
 
 1. Build and run with Docker Compose:
    ```bash
-   docker-compose up -d --build
+   # Using Docker Compose V2
+   docker compose up -d --build
    ```
 
 2. Environment Variables:
@@ -83,11 +84,17 @@ The application will be available at `http://localhost:3001`
    - The application will be available at `https://your-domain`
    - HTTPS is configured through the included nginx reverse proxy
    - HTTP traffic (port 80) is automatically redirected to HTTPS (port 443)
+   - Default admin credentials:
+     - Username: `admin`
+     - Password: `admin123`
+     - **Important**: Change these credentials after first login in production
 
-4. Monitor:
-   - Check container logs: `docker-compose logs -f`
+4. Monitor and Manage:
+   - Check container logs: `docker compose logs -f`
    - Visit the health check endpoint at `/api/health`
    - Monitor service status in the dashboard
+   - To stop containers: `docker compose down`
+   - To stop and reset database: `docker compose down -v`
 
 ## Database
 
@@ -95,7 +102,8 @@ The application uses SQLite3 for data storage:
 - Development: File stored at `./database/service-monitor.db`
 - Production: Stored in a Docker volume at `/app/data/service-monitor.db`
 - Automatic schema initialization on first run
-- Data persists between container restarts
+- Default admin user created on fresh database
+- Data persists between container restarts (unless `-v` flag used with down command)
 - Includes tables for users, services, and service checks
 
 ## Environment Variables
@@ -133,6 +141,65 @@ Health checks are configured in both the application and Docker containers.
   - Request validation
   - Database error handling
   - Graceful shutdown handling
+
+## Security
+
+### Initial Setup
+1. Generate a Strong JWT Secret:
+   ```bash
+   # Option 1: Using OpenSSL (recommended for production)
+   openssl rand -base64 64
+
+   # Option 2: Using Node.js
+   node -e "console.log(require('crypto').randomBytes(64).toString('base64'));"
+   ```
+   Add this to your `.env` file as `JWT_SECRET`
+
+2. SSL/HTTPS Configuration:
+   - Place your SSL certificates in the `ssl/` directory:
+     - `ssl/cert.pem`: Your SSL certificate
+     - `ssl/key.pem`: Your private key
+   - For development, you can generate self-signed certificates:
+     ```bash
+     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+       -keyout ssl/key.pem -out ssl/cert.pem
+     ```
+   - For production, use certificates from a trusted CA
+
+3. Default Admin Account:
+   - The default credentials (admin/admin123) are created on first run
+   - **IMPORTANT**: Change these immediately after first login in production
+   - Create a new admin user and delete or disable the default account
+
+### Best Practices
+1. Environment Variables:
+   - Never commit `.env` files to version control
+   - Keep different `.env` files for development and production
+   - Regularly rotate secrets and credentials
+   - Use strong, unique values for all secrets
+
+2. Database Security:
+   - The SQLite database is stored in a Docker volume
+   - Backup the database regularly
+   - Consider file system permissions in production
+   - Monitor database access logs
+
+3. Production Deployment:
+   - Use a firewall and restrict port access
+   - Keep Docker and all dependencies updated
+   - Monitor system logs for suspicious activity
+   - Regularly update SSL certificates before expiration
+   - Consider rate limiting for API endpoints
+   - Use secure headers (already configured in nginx)
+
+### Security Headers
+The application includes several security headers by default:
+- Strict-Transport-Security (HSTS)
+- X-Frame-Options
+- X-XSS-Protection
+- X-Content-Type-Options
+- Content-Security-Policy
+- Referrer-Policy
 
 ## API Endpoints
 

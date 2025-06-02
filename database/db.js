@@ -55,13 +55,41 @@ function initDatabase() {
     );
   `;
 
-  db.exec(schema, (err) => {
+  db.exec(schema, async (err) => {
     if (err) {
       console.error('Error creating database schema:', err);
     } else {
       console.log('Database schema initialized successfully');
+      // Create default admin user if none exists
+      await createDefaultAdminUser();
     }
   });
+}
+
+// Function to create default admin user
+async function createDefaultAdminUser() {
+  try {
+    const bcrypt = require('bcryptjs');
+    
+    // Check if any user exists
+    const existingUser = await getOne('SELECT id FROM users LIMIT 1');
+    
+    if (!existingUser) {
+      const defaultUsername = 'admin';
+      const defaultPassword = 'admin123';  // This can be changed via env var later if needed
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      
+      await runQuery(
+        'INSERT INTO users (username, password) VALUES (?, ?)',
+        [defaultUsername, hashedPassword]
+      );
+      
+      console.log('Default admin user created successfully');
+      console.log('Default credentials: admin / admin123');
+    }
+  } catch (error) {
+    console.error('Error creating default admin user:', error);
+  }
 }
 
 // Helper function to run queries with promises
