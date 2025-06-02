@@ -57,7 +57,7 @@ function ServiceList({ services, onServiceDeleted, isRefreshing }) {
         </div>
       )}
       
-      <div className={isRefreshing ? 'refreshing' : ''}>
+      <div className={`services-grid ${isRefreshing ? 'refreshing' : ''}`}>
         {services.map((service) => (
           <ServiceCard
             key={service.id}

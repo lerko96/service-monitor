@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API will always be served from /api in both development and production
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
 
 // Create axios instance with default config
 const api = axios.create({

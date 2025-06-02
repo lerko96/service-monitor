@@ -60,7 +60,7 @@ function Dashboard() {
     <div className="dashboard">
       <header>
         <div>
-          <h1>Service Monitor Dashboard</h1>
+          <h1>Dashboard</h1>
           <p className="welcome-message">Welcome, {user?.username}!</p>
           {lastUpdate && (
             <p className="last-update">
