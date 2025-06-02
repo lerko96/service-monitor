@@ -16,6 +16,7 @@ A web application that monitors the status of web services and provides real-tim
 - Node.js >= 18.0.0
 - npm or yarn
 - SQLite3
+- Docker (for production deployment)
 
 ## Local Development
 
@@ -45,36 +46,33 @@ A web application that monitors the status of web services and provides real-tim
    cd frontend && npm run dev
    ```
 
-## Production Deployment (Railway)
+## Production Deployment (Docker)
 
-1. Create a new project on Railway:
-   - Connect your GitHub repository
-   - Railway will automatically detect the configuration
+1. Build and run with Docker Compose:
+   ```bash
+   docker-compose up -d --build
+   ```
 
-2. Set up environment variables in Railway:
-   - Go to your project settings
-   - Add all variables from `.env.example`
-   - Update `VITE_API_URL` with your Railway app URL
-   - Generate a secure `JWT_SECRET`
+2. Environment Variables:
+   - Copy `.env.example` to `.env`
+   - Update the variables as needed
+   - Ensure `JWT_SECRET` is set to a secure value
 
-3. Deploy:
-   - Railway will automatically build and deploy your application
-   - The build process will:
-     1. Install dependencies
-     2. Build the frontend
-     3. Start the server
+3. Access the Application:
+   - The application will be available at `http://localhost:3001`
+   - For HTTPS, configure your reverse proxy (nginx configuration included)
 
 4. Monitor:
-   - Check the deployment logs
+   - Check container logs: `docker-compose logs -f`
    - Visit the health check endpoint at `/api/health`
    - Monitor service status in the dashboard
 
 ## Database
 
 The application uses SQLite3 for data storage. In production:
-- The database file is created automatically
+- The database file is stored in a Docker volume
 - Located at the path specified in `DB_PATH`
-- Ensure the directory is writable
+- Data persists between container restarts
 
 ## Environment Variables
 
@@ -84,7 +82,8 @@ Required variables:
 - `JWT_SECRET`: Secret for JWT tokens
 - `JWT_EXPIRATION`: Token expiration time
 - `DB_PATH`: SQLite database file path
-- `VITE_API_URL`: Backend API URL for frontend
+- `CHECK_INTERVAL`: Service check interval in minutes
+- `REQUEST_TIMEOUT`: Service check timeout in milliseconds
 
 ## Health Checks
 
@@ -118,7 +117,14 @@ MIT License - see LICENSE file for details
 ### Health Check
 - `GET /api/health` - Check if the server is running
 
-More endpoints will be added as development progresses.
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and get JWT token
+
+### Services
+- `GET /api/services` - List all services
+- `POST /api/services` - Add a new service
+- `DELETE /api/services/:id` - Delete a service
 
 ## Project Structure
 
@@ -128,7 +134,11 @@ service-monitor/
 ├── jobs/         # Scheduled jobs and tasks
 ├── middleware/   # Express middleware
 ├── routes/       # API routes
+├── frontend/     # React frontend application
 ├── server.js     # Main application file
+├── docker-compose.yml  # Docker Compose configuration
+├── Dockerfile    # Docker build configuration
+├── nginx.conf    # Nginx reverse proxy configuration
 ├── .env          # Environment variables (create from .env.example)
 └── package.json  # Project dependencies and scripts
 ``` 

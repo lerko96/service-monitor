@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// API will always be served from /api in both development and production
+const API_BASE_URL = '/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -28,8 +29,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle token expiration
     if (error.response?.status === 401) {
+      // Clear token and redirect to login on unauthorized
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -38,33 +39,15 @@ api.interceptors.response.use(
 );
 
 // Auth endpoints
-export const login = (credentials) => {
-  return api.post('/auth/login', credentials);
-};
-
-export const register = (userData) => {
-  return api.post('/auth/register', userData);
-};
-
-export const getProfile = () => {
-  return api.get('/auth/me');
-};
+export const login = (credentials) => api.post('/auth/login', credentials);
+export const register = (userData) => api.post('/auth/register', userData);
+export const getProfile = () => api.get('/auth/me');
 
 // Service endpoints
-export const getServices = () => {
-  return api.get('/services');
-};
-
-export const addService = (serviceData) => {
-  return api.post('/services', serviceData);
-};
-
-export const deleteService = (serviceId) => {
-  return api.delete(`/services/${serviceId}`);
-};
-
-export const getServiceChecks = (serviceId) => {
-  return api.get(`/services/${serviceId}/checks`);
-};
+export const getServices = () => api.get('/services');
+export const addService = (service) => api.post('/services', service);
+export const deleteService = (id) => api.delete(`/services/${id}`);
+export const getServiceChecks = (serviceId) => api.get(`/services/${serviceId}/checks`);
+export const checkHealth = () => api.get('/health');
 
 export default api; 

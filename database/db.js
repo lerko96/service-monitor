@@ -49,6 +49,7 @@ function initDatabase() {
       status_code INTEGER,
       response_time INTEGER,
       is_up BOOLEAN NOT NULL,
+      state TEXT NOT NULL DEFAULT 'DOWN',
       checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
     );

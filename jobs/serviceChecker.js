@@ -12,14 +12,36 @@ const REQUEST_TIMEOUT = process.env.REQUEST_TIMEOUT || 5000; // 5 seconds
 async function recordCheckResult(serviceId, result) {
   try {
     await runQuery(
-      `INSERT INTO service_checks (service_id, status_code, response_time, is_up)
-       VALUES (?, ?, ?, ?)`,
-      [serviceId, result.statusCode, result.responseTime, result.isUp ? 1 : 0]
+      `INSERT INTO service_checks (service_id, status_code, response_time, is_up, state)
+       VALUES (?, ?, ?, ?, ?)`,
+      [serviceId, result.statusCode, result.responseTime, result.isUp ? 1 : 0, result.state]
     );
   } catch (error) {
     console.error(`Error recording check result for service ${serviceId}:`, error);
     throw error; // Re-throw to handle in the calling function
   }
+}
+
+/**
+ * Determine service status based on response
+ * @param {number} statusCode - HTTP status code
+ * @param {number} responseTime - Response time in milliseconds
+ * @returns {Object} Status object with isUp and state properties
+ */
+function determineServiceStatus(statusCode, responseTime) {
+  if (responseTime > REQUEST_TIMEOUT) {
+    return { isUp: false, state: 'SLOW' };
+  }
+  
+  if (statusCode >= 200 && statusCode < 300) {
+    return { isUp: true, state: 'UP' };
+  }
+  
+  if (statusCode >= 400 && statusCode < 500) {
+    return { isUp: false, state: 'RESTRICTED' };
+  }
+  
+  return { isUp: false, state: 'DOWN' };
 }
 
 /**
@@ -31,8 +53,8 @@ async function checkService(service) {
   console.log(`Checking service: ${service.name} (${service.url})`);
   const startTime = Date.now();
   let statusCode = null;
-  let isUp = false;
   let responseTime = null;
+  let state = 'DOWN';
 
   try {
     const response = await axios.get(service.url, {
@@ -44,25 +66,25 @@ async function checkService(service) {
     statusCode = response.status;
     
     // Determine service status
-    // - Response time > 5000ms: status = "slow"
-    // - Status code 200-299: status = "up"
-    // - All other cases: status = "down"
-    isUp = responseTime <= 5000 && response.status >= 200 && response.status < 300;
+    const status = determineServiceStatus(statusCode, responseTime);
+    state = status.state;
 
-    console.log(`Service ${service.name} check result: status=${statusCode}, time=${responseTime}ms, up=${isUp}`);
+    console.log(`Service ${service.name} check result: status=${statusCode}, time=${responseTime}ms, state=${state}`);
 
     // Record check result
     await recordCheckResult(service.id, {
       statusCode,
       responseTime,
-      isUp
+      isUp: status.isUp,
+      state
     });
 
     return {
       serviceId: service.id,
       statusCode,
       responseTime,
-      isUp,
+      isUp: status.isUp,
+      state,
       error: null
     };
   } catch (error) {
@@ -71,29 +93,33 @@ async function checkService(service) {
     // Handle different types of errors
     if (error.code === 'ECONNABORTED') {
       statusCode = 0;
+      state = 'TIMEOUT';
       console.log(`Service ${service.name} timed out after ${responseTime}ms`);
     } else if (error.response) {
       statusCode = error.response.status;
+      const status = determineServiceStatus(statusCode, responseTime);
+      state = status.state;
       console.log(`Service ${service.name} returned error status ${statusCode}`);
     } else {
       statusCode = 0;
+      state = 'DOWN';
       console.log(`Service ${service.name} check failed: ${error.message}`);
     }
-
-    isUp = false;
 
     // Record check result even for failures
     await recordCheckResult(service.id, {
       statusCode,
       responseTime,
-      isUp
+      isUp: false,
+      state
     });
 
     return {
       serviceId: service.id,
       statusCode,
       responseTime,
-      isUp,
+      isUp: false,
+      state,
       error: error.message
     };
   }

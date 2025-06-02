@@ -91,6 +91,47 @@ button:focus-visible {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   background: white;
   transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.service-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.service-url {
+  color: #666;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.service-status {
+  margin-top: 1rem;
+}
+
+.status-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.response-time {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.last-checked {
+  color: #666;
+  font-size: 0.875rem;
 }
 
 .service-card.status-green {
@@ -103,6 +144,10 @@ button:focus-visible {
 
 .service-card.status-yellow {
   border-left: 4px solid #ffc107;
+}
+
+.service-card.status-orange {
+  border-left: 4px solid #ff9800;
 }
 
 .service-card.status-gray {

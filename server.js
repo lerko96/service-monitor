@@ -56,7 +56,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   
@@ -65,10 +65,27 @@ const server = app.listen(PORT, () => {
 });
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+const shutdown = () => {
+  console.log('Shutdown signal received: closing HTTP server');
   server.close(() => {
     console.log('HTTP server closed');
-    process.exit(0);
+    // Close database connection
+    if (db) {
+      db.close(() => {
+        console.log('Database connection closed');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
   });
-}); 
+
+  // Force close if graceful shutdown fails
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown); 

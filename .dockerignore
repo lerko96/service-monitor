@@ -1,0 +1,36 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+**/node_modules
+npm-debug.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build output
+frontend/dist
+frontend/build
+
+# Database files (will be mounted as volume)
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation and notes
+README.md
+project-notes/
+
+# OS files
+.DS_Store
+Thumbs.db 

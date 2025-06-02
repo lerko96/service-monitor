@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as loginApi } from '../services/api';
+import { login as loginApi, register as registerApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import { useToast } from '../components/Toast';
 
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { addToast } = useToast();
+  const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,29 +24,58 @@ function Login() {
       ...prev,
       [name]: value
     }));
-    setError(''); // Clear error when user types
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    if (isRegistering && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
     
     try {
-      const response = await loginApi(formData);
-      login(response.data.token, response.data.user);
-      navigate('/dashboard'); // Add navigation after successful login
+      let response;
+      if (isRegistering) {
+        response = await registerApi({
+          username: formData.username,
+          password: formData.password
+        });
+        addToast('Registration successful! Please log in.', 'success');
+        setIsRegistering(false);
+      } else {
+        response = await loginApi({
+          username: formData.username,
+          password: formData.password
+        });
+        login(response.data.token, response.data.user);
+        navigate('/dashboard');
+      }
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.error || 'Failed to login. Please check your credentials.');
+      console.error(isRegistering ? 'Registration error:' : 'Login error:', err);
+      setError(err.response?.data?.error || `Failed to ${isRegistering ? 'register' : 'login'}. Please try again.`);
     } finally {
       setLoading(false);
     }
   };
 
+  const toggleMode = () => {
+    setIsRegistering(!isRegistering);
+    setError('');
+    setFormData({
+      username: '',
+      password: '',
+      confirmPassword: ''
+    });
+  };
+
   return (
     <div className="login-container">
-      <h2>Service Monitor Login</h2>
+      <h2>{isRegistering ? 'Register New Account' : 'Service Monitor Login'}</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="username">Username:</label>
@@ -66,10 +99,25 @@ function Login() {
             value={formData.password}
             onChange={handleChange}
             required
-            autoComplete="current-password"
+            autoComplete={isRegistering ? 'new-password' : 'current-password'}
             disabled={loading}
           />
         </div>
+        {isRegistering && (
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password:</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              autoComplete="new-password"
+              disabled={loading}
+            />
+          </div>
+        )}
         {error && <div className="error-message">{error}</div>}
         <button 
           type="submit" 
@@ -79,13 +127,20 @@ function Login() {
           {loading ? (
             <>
               <LoadingSpinner size="small" />
-              <span>Logging in...</span>
+              <span>{isRegistering ? 'Registering...' : 'Logging in...'}</span>
             </>
           ) : (
-            'Login'
+            isRegistering ? 'Register' : 'Login'
           )}
         </button>
       </form>
+      <button 
+        onClick={toggleMode} 
+        className="toggle-mode-button"
+        disabled={loading}
+      >
+        {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
+      </button>
     </div>
   );
 }

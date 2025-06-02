@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { runQuery, getOne, getAll } = require('../database/db');
+const { checkService } = require('../jobs/serviceChecker');
 
 // URL validation helper
 function isValidUrl(string) {
@@ -23,6 +24,7 @@ router.get('/', authenticateToken, async (req, res) => {
         c.status_code,
         c.response_time,
         c.is_up,
+        c.state,
         c.checked_at
       FROM services s
       LEFT JOIN (
@@ -50,6 +52,7 @@ router.get('/', authenticateToken, async (req, res) => {
         status_code: service.status_code,
         response_time: service.response_time,
         is_up: Boolean(service.is_up),
+        state: service.state,
         checked_at: service.checked_at
       } : null
     }));
@@ -85,6 +88,21 @@ router.post('/', authenticateToken, async (req, res) => {
       'SELECT * FROM services WHERE id = ?',
       [result.lastID]
     );
+
+    // Perform immediate check
+    try {
+      const checkResult = await checkService(newService);
+      newService.latest_check = {
+        id: null, // We don't have this information from checkService
+        status_code: checkResult.statusCode,
+        response_time: checkResult.responseTime,
+        is_up: checkResult.isUp,
+        checked_at: new Date().toISOString()
+      };
+    } catch (checkError) {
+      console.error('Error performing initial service check:', checkError);
+      // Don't fail the request if the check fails
+    }
 
     res.status(201).json(newService);
   } catch (error) {
