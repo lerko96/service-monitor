@@ -60,27 +60,45 @@ A web application that monitors the status of web services and provides real-tim
    cp .env.example .env
    ```
 
-4. Start the development server:
+4. Set up SSL certificates for development:
+   ```bash
+   ./scripts/setup-dev-ssl.sh
+   ```
+   This will generate self-signed certificates for local development.
+   Note: You will see browser warnings - this is normal for development.
+
+5. Start the development server:
    ```bash
    npm run dev
    ```
 
-The application will be available at `http://localhost:3001`
+The application will be available at `https://localhost:3001`
 
 ## Production Deployment (Docker)
 
-1. Build and run with Docker Compose:
+1. Set up SSL certificates:
+   ```bash
+   # Replace example.com with your domain
+   ./scripts/setup-prod-ssl.sh example.com
+   ```
+   This script will:
+   - Install certbot if needed
+   - Obtain Let's Encrypt SSL certificates
+   - Configure automatic renewal
+   - Set proper permissions
+
+2. Build and run with Docker Compose:
    ```bash
    # Using Docker Compose V2
    docker compose up -d --build
    ```
 
-2. Environment Variables:
+3. Environment Variables:
    - Copy `.env.example` to `.env`
    - Update the variables as needed
    - Ensure `JWT_SECRET` is set to a secure value
 
-3. Access the Application:
+4. Access the Application:
    - The application will be available at `https://your-domain`
    - HTTPS is configured through the included nginx reverse proxy
    - HTTP traffic (port 80) is automatically redirected to HTTPS (port 443)
@@ -89,12 +107,32 @@ The application will be available at `http://localhost:3001`
      - Password: `admin123`
      - **Important**: Change these credentials after first login in production
 
-4. Monitor and Manage:
+5. Monitor and Manage:
    - Check container logs: `docker compose logs -f`
    - Visit the health check endpoint at `/api/health`
    - Monitor service status in the dashboard
    - To stop containers: `docker compose down`
    - To stop and reset database: `docker compose down -v`
+
+## SSL Certificates
+
+The application requires SSL certificates for HTTPS. We provide automated setup for both development and production:
+
+### Development Certificates
+- Generated automatically by `setup-dev-ssl.sh`
+- Self-signed certificates for local development
+- Browser warnings are normal and can be ignored in development
+
+### Production Certificates
+- Obtained from Let's Encrypt using `setup-prod-ssl.sh`
+- Automatically renewed monthly
+- Proper security permissions enforced
+- See `ssl/README.md` for detailed SSL management instructions
+
+For custom certificates:
+- Place your certificate at `ssl/cert.pem`
+- Place your private key at `ssl/key.pem`
+- Ensure proper permissions: `chmod 600 ssl/*.pem`
 
 ## Database
 
