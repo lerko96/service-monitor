@@ -15,7 +15,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=24h
       - DB_PATH=/app/data/service-monitor.db
-      - CHECK_INTERVAL=5
+      - CHECK_INTERVAL_SECONDS=300
       - REQUEST_TIMEOUT=5000
       - LOG_LEVEL=info
     restart: unless-stopped

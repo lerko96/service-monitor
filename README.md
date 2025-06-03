@@ -6,7 +6,7 @@ A web application that monitors the status of web services and provides real-tim
 
 - User authentication with JWT tokens
 - Add, manage, and monitor web services
-- Automatic service status checks (30s in development, 5min in production)
+- Automatic service status checks (30s in development, 5min in production by default)
 - Real-time dashboard with service status updates
 - Toast notifications for user actions and service status changes
 - Professional UI with React and modern styling
@@ -60,19 +60,19 @@ A web application that monitors the status of web services and provides real-tim
    cp .env.example .env
    ```
 
-4. Set up SSL certificates for development:
-   ```bash
-   ./scripts/setup-dev-ssl.sh
-   ```
-   This will generate self-signed certificates for local development.
-   Note: You will see browser warnings - this is normal for development.
-
-5. Start the development server:
+4. Start the backend server:
    ```bash
    npm run dev
    ```
 
-The application will be available at `https://localhost:3001`
+5. In a new terminal, start the frontend:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+The application will be available at `http://localhost:5173`
+The API backend will be running at `http://localhost:3001`
 
 ## Production Deployment (Docker)
 
@@ -116,23 +116,34 @@ The application will be available at `https://localhost:3001`
 
 ## SSL Certificates
 
-The application requires SSL certificates for HTTPS. We provide automated setup for both development and production:
+SSL certificates are **required for production deployment** but **not needed for local development**.
 
-### Development Certificates
-- Generated automatically by `setup-dev-ssl.sh`
-- Self-signed certificates for local development
-- Browser warnings are normal and can be ignored in development
+### Development
+Local development uses plain HTTP communication:
+- Frontend: `http://localhost:5173` (Vite dev server)  
+- Backend: `http://localhost:3001` (Node.js API server)
+- No SSL certificates needed
 
-### Production Certificates
-- Obtained from Let's Encrypt using `setup-prod-ssl.sh`
-- Automatically renewed monthly
-- Proper security permissions enforced
-- See `ssl/README.md` for detailed SSL management instructions
+**Optional**: If you need to test HTTPS behavior in development, you can generate self-signed certificates:
+```bash
+./scripts/setup-dev-ssl.sh
+```
+However, this requires additional nginx setup for local development, which is not covered in this guide.
 
-For custom certificates:
-- Place your certificate at `ssl/cert.pem`
-- Place your private key at `ssl/key.pem`
-- Ensure proper permissions: `chmod 600 ssl/*.pem`
+### Production (Required)
+Production deployment requires SSL certificates for HTTPS:
+
+1. **Automated Let's Encrypt (Recommended):**
+   ```bash
+   ./scripts/setup-prod-ssl.sh your-domain.com
+   ```
+
+2. **Custom Certificates:**
+   - Place your certificate at `ssl/cert.pem`
+   - Place your private key at `ssl/key.pem`
+   - Ensure proper permissions: `chmod 600 ssl/*.pem`
+
+The nginx reverse proxy uses these certificates to provide HTTPS access to your application.
 
 ## Database
 
@@ -152,9 +163,14 @@ Required variables:
 - `JWT_SECRET`: Secret for JWT tokens
 - `JWT_EXPIRATION`: Token expiration time (default: 24h)
 - `DB_PATH`: SQLite database file path
-- `CHECK_INTERVAL`: Service check interval in minutes (defaults: 0.5 dev, 5 prod)
+- `CHECK_INTERVAL_SECONDS`: Service check interval in seconds (default: 30 for development, 300 for production)
 - `REQUEST_TIMEOUT`: Service check timeout in milliseconds (default: 5000)
 - `LOG_LEVEL`: Logging level (info/error/debug)
+
+**Note on CHECK_INTERVAL_SECONDS**: 
+- Development: Defaults to 30 seconds (hardcoded, environment variable not required)
+- Production: Defaults to 300 seconds (5 minutes) but can be overridden with `CHECK_INTERVAL_SECONDS`
+- Minimum allowed value is 10 seconds
 
 ## Health Checks
 
@@ -202,7 +218,7 @@ Health checks are configured in both the application and Docker containers.
       ```bash
       mkdir -p ssl
       ```
-   
+   ,,
    2. Generate self-signed certificates:
       ```bash
       openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
