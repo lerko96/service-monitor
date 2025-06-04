@@ -46,12 +46,10 @@ function Dashboard() {
   const fetchServices = useCallback(async () => {
     try {
       const response = await getServices();
-      console.log('API Response:', response.data); // Debug log
       setServices(response.data);
       setError('');
       setLastUpdate(new Date());
     } catch (err) {
-      console.error('API Error:', err.response || err); // Debug log
       if (err.response?.status === 401) {
         logout();
         navigate('/login');
@@ -71,7 +69,6 @@ function Dashboard() {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     const intervalId = setInterval(() => {
-      console.log('Fetching services...'); // Debug log
       fetchServices();
     }, 30000);
 
@@ -88,23 +85,21 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <header>
-        <div>
-          <h1>Dashboard</h1>
-          <p className="welcome-message">Welcome, {user?.username}!</p>
+      <header className="dashboard-header">
+        <div className="dashboard-header-left">
+          <h2>Service Dashboard</h2>
           {lastUpdate && (
             <p className="last-update">
               Last updated: {lastUpdate.toLocaleTimeString()}
             </p>
           )}
         </div>
-        <div className="header-actions">
+        <div className="dashboard-header-right">
           <ViewToggle 
             viewMode={userViewPreference}
             onViewModeChange={handleViewModeChange}
             isMobile={isMobile}
           />
-          <button onClick={logout} className="logout-button">Logout</button>
         </div>
       </header>
       

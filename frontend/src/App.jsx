@@ -6,9 +6,28 @@ import { ToastProvider } from './components/Toast';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import ThemeToggle from './components/ThemeToggle';
+import UserMenu from './components/UserMenu';
+import { useAuth } from './context/AuthContext';
 import './index.css';
 import './App.css';
+
+function AppHeader() {
+  const { isAuthenticated } = useAuth();
+  
+  return (
+    <header className="app-header">
+      <div className="header-left">
+        <h1>Service Monitor</h1>
+      </div>
+      <div className="header-center">
+        {/* Reserved for future navigation */}
+      </div>
+      <div className="header-right">
+        {isAuthenticated && <UserMenu />}
+      </div>
+    </header>
+  );
+}
 
 function App() {
   return (
@@ -18,10 +37,7 @@ function App() {
           <AuthProvider>
             <Router>
               <div className="app">
-                <header className="app-header">
-                  <h1>Service Monitor</h1>
-                  <ThemeToggle />
-                </header>
+                <AppHeader />
                 <main className="app-main">
                   <Routes>
                     <Route path="/login" element={<Login />} />
