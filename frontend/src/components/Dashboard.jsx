@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ServiceList from './ServiceList';
 import AddService from './AddService';
+import ViewToggle from './ViewToggle';
 import { getServices } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,8 +11,37 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [userViewPreference, setUserViewPreference] = useState('grid');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+
+  // Actual view mode (force list on mobile, respect user preference otherwise)
+  const viewMode = isMobile ? 'list' : userViewPreference;
+
+  // Load view preference from localStorage on mount
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('serviceViewMode');
+    if (savedViewMode && (savedViewMode === 'grid' || savedViewMode === 'list')) {
+      setUserViewPreference(savedViewMode);
+    }
+  }, []);
+
+  // Handle window resize for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Handle view mode change
+  const handleViewModeChange = useCallback((newViewMode) => {
+    setUserViewPreference(newViewMode);
+    localStorage.setItem('serviceViewMode', newViewMode);
+  }, []);
 
   const fetchServices = useCallback(async () => {
     try {
@@ -68,7 +98,14 @@ function Dashboard() {
             </p>
           )}
         </div>
-        <button onClick={logout} className="logout-button">Logout</button>
+        <div className="header-actions">
+          <ViewToggle 
+            viewMode={userViewPreference}
+            onViewModeChange={handleViewModeChange}
+            isMobile={isMobile}
+          />
+          <button onClick={logout} className="logout-button">Logout</button>
+        </div>
       </header>
       
       <AddService onServiceAdded={handleServiceAdded} />
@@ -92,6 +129,7 @@ function Dashboard() {
           services={services} 
           onServiceDeleted={handleServiceDeleted}
           isRefreshing={loading}
+          viewMode={viewMode}
         />
       )}
     </div>
