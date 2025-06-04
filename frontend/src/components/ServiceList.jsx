@@ -5,7 +5,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 import { useToast } from './Toast';
 import ServiceCard from './ServiceCard';
 
-function ServiceList({ services, onServiceDeleted, isRefreshing }) {
+function ServiceList({ services, onServiceDeleted, isRefreshing, viewMode = 'grid' }) {
   const { success, error: showError } = useToast();
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
@@ -42,6 +42,10 @@ function ServiceList({ services, onServiceDeleted, isRefreshing }) {
     );
   }
 
+  const containerClass = viewMode === 'list' 
+    ? 'services-list-view' 
+    : 'services-grid-view';
+
   return (
     <div>
       {error && (
@@ -57,12 +61,14 @@ function ServiceList({ services, onServiceDeleted, isRefreshing }) {
         </div>
       )}
       
-      <div className={`services-grid ${isRefreshing ? 'refreshing' : ''}`}>
+      <div className={`${containerClass} ${isRefreshing ? 'refreshing' : ''}`}>
         {services.map((service) => (
           <ServiceCard
             key={service.id}
             service={service}
             onDelete={() => handleDeleteClick(service)}
+            viewMode={viewMode}
+            isDeleting={deletingId === service.id}
           />
         ))}
       </div>

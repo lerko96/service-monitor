@@ -14,6 +14,50 @@ function isValidUrl(string) {
   }
 }
 
+// Helper function to calculate average response time for last N checks
+async function getLastNAverageResponseTime(serviceId, n = 10) {
+  try {
+    const recentChecks = await getAll(
+      `SELECT response_time 
+       FROM service_checks 
+       WHERE service_id = ? AND response_time IS NOT NULL 
+       ORDER BY checked_at DESC 
+       LIMIT ?`,
+      [serviceId, n]
+    );
+
+    if (recentChecks.length === 0) {
+      return null;
+    }
+
+    const sum = recentChecks.reduce((acc, check) => acc + check.response_time, 0);
+    return Math.round(sum / recentChecks.length);
+  } catch (error) {
+    console.error(`Error calculating last ${n} average response time:`, error);
+    return null;
+  }
+}
+
+// Helper function to get recent check history for status visualization
+async function getRecentCheckHistory(serviceId, limit = 24) {
+  try {
+    const recentChecks = await getAll(
+      `SELECT is_up, state, checked_at 
+       FROM service_checks 
+       WHERE service_id = ? 
+       ORDER BY checked_at DESC 
+       LIMIT ?`,
+      [serviceId, limit]
+    );
+
+    // Return in chronological order (oldest first) for visualization
+    return recentChecks.reverse();
+  } catch (error) {
+    console.error(`Error getting recent check history for service ${serviceId}:`, error);
+    return [];
+  }
+}
+
 // List user's services with latest status
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -40,21 +84,28 @@ router.get('/', authenticateToken, async (req, res) => {
       ORDER BY s.created_at DESC
     `, [req.user.id]);
 
-    // Format the response
-    const formattedServices = services.map(service => ({
-      id: service.id,
-      user_id: service.user_id,
-      name: service.name,
-      url: service.url,
-      created_at: service.created_at,
-      latest_check: service.latest_check_id ? {
-        id: service.latest_check_id,
-        status_code: service.status_code,
-        response_time: service.response_time,
-        is_up: Boolean(service.is_up),
-        state: service.state,
-        checked_at: service.checked_at
-      } : null
+    // Format the response with last 10 average response time and recent history
+    const formattedServices = await Promise.all(services.map(async (service) => {
+      const last10Average = await getLastNAverageResponseTime(service.id, 10);
+      const recentHistory = await getRecentCheckHistory(service.id, 24);
+      
+      return {
+        id: service.id,
+        user_id: service.user_id,
+        name: service.name,
+        url: service.url,
+        created_at: service.created_at,
+        last_10_avg_response_time: last10Average,
+        recent_history: recentHistory,
+        latest_check: service.latest_check_id ? {
+          id: service.latest_check_id,
+          status_code: service.status_code,
+          response_time: service.response_time,
+          is_up: Boolean(service.is_up),
+          state: service.state,
+          checked_at: service.checked_at
+        } : null
+      };
     }));
 
     res.json(formattedServices);
@@ -181,12 +232,18 @@ router.get('/:id/checks', authenticateToken, async (req, res) => {
       WHERE service_id = ?
     `, [req.params.id]);
 
+    // Calculate recent averages
+    const last10Average = await getLastNAverageResponseTime(req.params.id, 10);
+    const last5Average = await getLastNAverageResponseTime(req.params.id, 5);
+
     res.json({
       service,
       checks,
       statistics: {
         uptime: stats.total_checks ? (stats.successful_checks / stats.total_checks * 100).toFixed(2) + '%' : 'N/A',
         avg_response_time: stats.avg_response_time ? Math.round(stats.avg_response_time) + 'ms' : 'N/A',
+        last_10_avg_response_time: last10Average ? last10Average + 'ms' : 'N/A',
+        last_5_avg_response_time: last5Average ? last5Average + 'ms' : 'N/A',
         min_response_time: stats.min_response_time ? stats.min_response_time + 'ms' : 'N/A',
         max_response_time: stats.max_response_time ? stats.max_response_time + 'ms' : 'N/A',
         total_checks: stats.total_checks

@@ -8,6 +8,7 @@ A web application that monitors the status of web services and provides real-tim
 - Add, manage, and monitor web services
 - Automatic service status checks (30s in development, 5min in production by default)
 - Real-time dashboard with service status updates
+- **Status History Visualization** - Visual timeline showing recent service uptime/downtime with colored bars
 - Toast notifications for user actions and service status changes
 - Professional UI with React and modern styling
 - Comprehensive error handling and boundary protection
